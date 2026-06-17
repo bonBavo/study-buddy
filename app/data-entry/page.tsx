@@ -6,15 +6,25 @@ import { Input } from "@/components/Input";
 import { performanceSchema, PerformanceInput } from "@/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import { Subject, Performance } from "@prisma/client";
+import { useState } from "react";
+import { db, Performance, Subject } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 
-type PerformanceWithSubject = Performance & { subject: Subject };
+type PerformanceWithSubject = Performance & { subject?: Subject };
 
 export default function DataEntryPage() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [history, setHistory] = useState<PerformanceWithSubject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const subjects = useLiveQuery(() => db.subjects.toArray()) || [];
+  const history = useLiveQuery(async () => {
+    const perfs = await db.performances.orderBy("createdAt").reverse().toArray();
+    // Resolve subjects
+    const enriched = await Promise.all(perfs.map(async (p) => ({
+      ...p,
+      subject: await db.subjects.get(p.subjectId)
+    })));
+    return enriched;
+  }) || [];
+
+  const isLoading = subjects === undefined || history === undefined;
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<PerformanceInput>({
     resolver: zodResolver(performanceSchema) as any,
@@ -25,42 +35,14 @@ export default function DataEntryPage() {
     }
   });
 
-  const fetchData = async () => {
-    try {
-      const [subsRes, perfRes] = await Promise.all([
-        fetch("/api/subjects"),
-        fetch("/api/performance")
-      ]);
-      const subsData = await subsRes.json();
-      const perfData = await perfRes.json();
-      setSubjects(subsData);
-      setHistory(perfData);
-    } catch (error) {
-      console.error("Failed to fetch data", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const onSubmit = async (data: PerformanceInput) => {
     try {
-      const response = await fetch("/api/performance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      await db.performances.add({
+        ...data,
+        studentId: "local-user", // Since we are using Dexie, we can use a dummy ID or implement local auth
+        createdAt: Date.now(),
       });
-
-      if (response.ok) {
-        reset();
-        fetchData();
-      } else {
-        const err = await response.json();
-        alert(err.error || "Failed to save record");
-      }
+      reset();
     } catch (error) {
       console.error("Failed to save record", error);
     }
@@ -131,7 +113,7 @@ export default function DataEntryPage() {
                   history.map((h) => (
                     <tr key={h.id}>
                       <td>{new Date(h.createdAt).toLocaleDateString()}</td>
-                      <td>{h.subject.name}</td>
+                      <td>{h.subject?.name || "Deleted Subject"}</td>
                       <td style={{ 
                         color: h.score >= 70 ? "var(--color-success)" : 
                                h.score >= 50 ? "var(--color-warning)" : 

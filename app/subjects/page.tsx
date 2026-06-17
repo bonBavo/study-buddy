@@ -6,12 +6,13 @@ import { Input } from "@/components/Input";
 import { DIFFICULTY_LEVELS, subjectSchema, SubjectInput } from "@/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import { Subject } from "@prisma/client";
+import { useState } from "react";
+import { db, Subject } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 
 export default function SubjectsPage() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const subjects = useLiveQuery(() => db.subjects.toArray()) || [];
+  const isLoading = subjects === undefined;
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<SubjectInput>({
@@ -23,44 +24,22 @@ export default function SubjectsPage() {
     }
   });
 
-  const fetchSubjects = async () => {
-    try {
-      const response = await fetch("/api/subjects");
-      const data = await response.json();
-      setSubjects(data);
-    } catch (error) {
-      console.error("Failed to fetch subjects", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
-
   const onSubmit = async (data: SubjectInput) => {
     try {
-      const url = editingId ? `/api/subjects/${editingId}` : "/api/subjects";
-      const method = editingId ? "PUT" : "POST";
-      
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        reset();
-        setEditingId(null);
-        fetchSubjects();
+      if (editingId) {
+        await db.subjects.update(editingId, data);
+      } else {
+        await db.subjects.add(data);
       }
+      reset();
+      setEditingId(null);
     } catch (error) {
       console.error("Failed to save subject", error);
     }
   };
 
   const handleEdit = (subject: Subject) => {
+    if (!subject.id) return;
     setEditingId(subject.id);
     setValue("name", subject.name);
     setValue("creditHours", subject.creditHours);
@@ -68,14 +47,16 @@ export default function SubjectsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string | undefined) => {
+    if (!id) return;
     if (!confirm("Are you sure you want to delete this subject?")) return;
     
     try {
-      const response = await fetch(`/api/subjects/${id}`, { method: "DELETE" });
-      if (response.ok) {
-        fetchSubjects();
-      }
+      await db.subjects.delete(id);
+      // Also delete related performances (Manual cascade for Dexie)
+      await db.performances.where("subjectId").equals(id).delete();
+      await db.predictions.where("subjectId").equals(id).delete();
+      await db.recommendations.where("subjectId").equals(id).delete();
     } catch (error) {
       console.error("Failed to delete subject", error);
     }

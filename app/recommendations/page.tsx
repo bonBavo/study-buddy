@@ -2,7 +2,8 @@
 
 import { Card } from "@/components/Card";
 import { CLASSIFICATIONS } from "@/types";
-import { useEffect, useState } from "react";
+import { db } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 
 interface Recommendation {
   subjectId: string;
@@ -13,24 +14,38 @@ interface Recommendation {
 }
 
 export default function RecommendationsPage() {
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const recommendations = useLiveQuery(async () => {
+    const subjects = await db.subjects.toArray();
+    const performances = await db.performances.toArray();
 
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        const response = await fetch("/api/recommendations");
-        const data = await response.json();
-        setRecommendations(data);
-      } catch (error) {
-        console.error("Failed to fetch recommendations", error);
-      } finally {
-        setIsLoading(false);
+    return subjects.map(s => {
+      const subPerfs = performances.filter(p => p.subjectId === s.id);
+      const avgScore = subPerfs.length > 0
+        ? subPerfs.reduce((acc, curr) => acc + curr.score, 0) / subPerfs.length
+        : 0;
+      
+      let classification: string = CLASSIFICATIONS.AVERAGE;
+      let recommendedHours = 5;
+
+      if (avgScore < 60) {
+        classification = CLASSIFICATIONS.WEAK;
+        recommendedHours = 10;
+      } else if (avgScore >= 80) {
+        classification = CLASSIFICATIONS.STRONG;
+        recommendedHours = 2;
       }
-    };
 
-    fetchRecommendations();
-  }, []);
+      return {
+        subjectId: s.id!,
+        subjectName: s.name,
+        classification,
+        recommendedHours,
+        avgScore: Math.round(avgScore)
+      };
+    });
+  }, []) || [];
+
+  const isLoading = recommendations.length === 0 && (useLiveQuery(() => db.subjects.count()) || 0) > 0;
 
   return (
     <div>

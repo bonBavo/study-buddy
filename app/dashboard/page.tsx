@@ -2,12 +2,13 @@
 
 import { Card } from "@/components/Card";
 import { SummaryCard } from "@/components/SummaryCard";
-import { useEffect, useState } from "react";
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import Link from "next/link";
 import { Button } from "@/components/Button";
+import { db } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 
 interface DashboardStats {
   totalSubjects: number;
@@ -21,65 +22,57 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const stats = useLiveQuery(async () => {
+    const subjects = await db.subjects.toArray();
+    const performances = await db.performances.toArray();
+    
+    // Resolve subjects for performances
+    const performancesWithSubject = await Promise.all(performances.map(async (p) => ({
+      ...p,
+      subject: await db.subjects.get(p.subjectId)
+    })));
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [subsRes, perfRes] = await Promise.all([
-          fetch("/api/subjects"),
-          fetch("/api/performance")
-        ]);
-        
-        const subjects = await subsRes.json();
-        const performances = await perfRes.json();
-
-        // Calculate stats
-        const totalSubjects = subjects.length;
-        const averageScore = performances.length > 0 
-          ? Math.round(performances.reduce((acc: number, curr: any) => acc + curr.score, 0) / performances.length)
-          : 0;
-        
-        // Simple logic for weak subjects (avg score < 60)
-        const subjectAverages: Record<string, { total: number, count: number }> = {};
-        performances.forEach((p: any) => {
-          if (!subjectAverages[p.subject.name]) {
-            subjectAverages[p.subject.name] = { total: 0, count: 0 };
-          }
-          subjectAverages[p.subject.name].total += p.score;
-          subjectAverages[p.subject.name].count += 1;
-        });
-
-        const weakSubjects = Object.values(subjectAverages).filter(s => (s.total / s.count) < 60).length;
-
-        // Prepare chart data (latest score per subject)
-        const performanceData = subjects.map((s: any) => {
-          const subPerf = performances.filter((p: any) => p.subjectId === s.id);
-          const latestScore = subPerf.length > 0 ? subPerf[0].score : 0;
-          const totalHours = subPerf.reduce((acc: number, curr: any) => acc + curr.studyHours, 0);
-          return {
-            subject: s.name,
-            score: latestScore,
-            studyHours: totalHours
-          };
-        });
-
-        setStats({
-          totalSubjects,
-          averageScore,
-          weakSubjects,
-          performanceData
-        });
-      } catch (error) {
-        console.error("Failed to fetch dashboard stats", error);
-      } finally {
-        setIsLoading(false);
+    // Calculate stats
+    const totalSubjects = subjects.length;
+    const averageScore = performances.length > 0 
+      ? Math.round(performances.reduce((acc, curr) => acc + curr.score, 0) / performances.length)
+      : 0;
+    
+    // Simple logic for weak subjects (avg score < 60)
+    const subjectAverages: Record<string, { total: number, count: number }> = {};
+    performancesWithSubject.forEach((p) => {
+      const subName = p.subject?.name || "Deleted Subject";
+      if (!subjectAverages[subName]) {
+        subjectAverages[subName] = { total: 0, count: 0 };
       }
-    };
+      subjectAverages[subName].total += p.score;
+      subjectAverages[subName].count += 1;
+    });
 
-    fetchStats();
-  }, []);
+    const weakSubjects = Object.values(subjectAverages).filter(s => (s.total / s.count) < 60).length;
+
+    // Prepare chart data (latest score per subject)
+    const performanceData = subjects.map((s) => {
+      const subPerf = performances.filter((p) => p.subjectId === s.id)
+        .sort((a, b) => b.createdAt - a.createdAt);
+      const latestScore = subPerf.length > 0 ? subPerf[0].score : 0;
+      const totalHours = subPerf.reduce((acc, curr) => acc + curr.studyHours, 0);
+      return {
+        subject: s.name,
+        score: latestScore,
+        studyHours: totalHours
+      };
+    });
+
+    return {
+      totalSubjects,
+      averageScore,
+      weakSubjects,
+      performanceData
+    } as DashboardStats;
+  }, []) || null;
+
+  const isLoading = stats === null;
 
   if (isLoading) return <p>Loading Dashboard...</p>;
 

@@ -2,10 +2,11 @@
 
 import { Card } from "@/components/Card";
 import { CLASSIFICATIONS } from "@/types";
-import { useEffect, useState } from "react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from "recharts";
+import { db } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 
 interface Prediction {
   subjectId: string;
@@ -15,24 +16,30 @@ interface Prediction {
 }
 
 export default function PredictionsPage() {
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const predictions = useLiveQuery(async () => {
+    const subjects = await db.subjects.toArray();
+    const performances = await db.performances.toArray();
 
-  useEffect(() => {
-    const fetchPredictions = async () => {
-      try {
-        const response = await fetch("/api/recommendations");
-        const data = await response.json();
-        setPredictions(data);
-      } catch (error) {
-        console.error("Failed to fetch predictions", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    return subjects.map(s => {
+      const subPerfs = performances.filter(p => p.subjectId === s.id);
+      const avgScore = subPerfs.length > 0
+        ? subPerfs.reduce((acc, curr) => acc + curr.score, 0) / subPerfs.length
+        : 0;
+      
+      let classification: string = CLASSIFICATIONS.AVERAGE;
+      if (avgScore < 60) classification = CLASSIFICATIONS.WEAK;
+      else if (avgScore >= 80) classification = CLASSIFICATIONS.STRONG;
 
-    fetchPredictions();
-  }, []);
+      return {
+        subjectId: s.id!,
+        subjectName: s.name,
+        classification,
+        avgScore: Math.round(avgScore)
+      };
+    });
+  }, []) || [];
+
+  const isLoading = predictions.length === 0 && (useLiveQuery(() => db.subjects.count()) || 0) > 0;
 
   const getBarColor = (classification: string) => {
     switch (classification) {

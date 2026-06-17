@@ -39,13 +39,13 @@
 - **Framework**: Next.js 16.2.9 (Latest version with breaking changes)
 - **UI Library**: React 19.2.4
 - **Styling**: Tailwind CSS 4
+- **Client Storage**: Dexie (IndexedDB) + dexie-react-hooks — the frontend persists user data locally in the browser using Dexie/IndexedDB for responsive UI and offline-capable workflows
 - **Forms**: React Hook Form with Zod validation
 - **Visualization**: Recharts 3.8.1
 
 ### Backend & Database
 - **Runtime**: Node.js (via Next.js API routes)
-- **Database**: MySQL (MariaDB compatible)
-- **ORM**: Prisma 7.8.0
+- **ORM**: Prisma 7.8.0 (configured via DATABASE_URL). The backend is present and can connect to a server-side database (MySQL/MariaDB in production). For local development and quick demos the project also includes a local SQLite database file (`dev.db`) and the Prisma datasource can be switched to SQLite via the DATABASE_URL environment variable.
 - **Authentication**: JWT (Jose library)
 - **Password Hashing**: bcryptjs 3.0.3
 
@@ -93,6 +93,8 @@
     │   (MariaDB)       │
     └──────────────────┘
 ```
+
+Note: The frontend uses Dexie (IndexedDB) to store subjects, performance entries, predictions and recommendations locally in the browser for a responsive, offline-friendly user experience. The backend API (Prisma + a server-side database) is included and can be used for centralized storage, multi-user scenarios, or production deployments. The application currently supports running with local IndexedDB only (frontend-first) while the backend Prisma layer is available as an opt-in component depending on your DATABASE_URL configuration.
 
 ### Request Flow Example
 ```
