@@ -21,6 +21,7 @@ export async function PUT(
     });
 
     return NextResponse.json(subject);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return NextResponse.json({ error: "Failed to update subject" }, { status: 500 });
   }
