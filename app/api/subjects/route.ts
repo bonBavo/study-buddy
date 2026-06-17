@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { subjectSchema } from "@/types";
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
@@ -23,6 +22,7 @@ async function getUserId() {
 
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const userId = await getUserId();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -37,6 +37,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const userId = await getUserId();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

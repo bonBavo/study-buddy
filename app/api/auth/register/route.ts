@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { authSchema } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    const { prisma } = await import('@/lib/prisma');
     const body = await request.json();
     const { name, email, password } = authSchema.parse(body);
 

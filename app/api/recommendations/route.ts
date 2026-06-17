@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { CLASSIFICATIONS } from "@/types";
 
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const subjects = await prisma.subject.findMany({
       include: {
         performances: {

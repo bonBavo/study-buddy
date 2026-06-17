@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { authSchema } from '@/types';
 import { SignJWT } from 'jose';
@@ -11,6 +10,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(request: Request) {
   try {
+    const { prisma } = await import('@/lib/prisma');
     const body = await request.json();
     const { email, password } = authSchema.parse(body);
 
