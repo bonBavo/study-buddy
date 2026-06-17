@@ -13,7 +13,7 @@ export async function GET() {
       }
     });
 
-    const recommendations = subjects.map(subject => {
+    const recommendations = subjects.map((subject: typeof subjects[0]) => {
       const perfs = subject.performances;
       const avgScore = perfs.length > 0 
         ? perfs.reduce((acc, curr) => acc + curr.score, 0) / perfs.length 
