@@ -36,8 +36,8 @@ model Performance {
   grade      String?
   createdAt  DateTime @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
-  subject Subject @relation(fields: [subjectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
 
 model AIPrediction {
@@ -49,8 +49,8 @@ model AIPrediction {
   finalScore     Float
   createdAt      DateTime @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
-  subject Subject @relation(fields: [subjectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
 
 model StudyRecommendation {
@@ -61,6 +61,6 @@ model StudyRecommendation {
   classification   String
   createdAt        DateTime @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
-  subject Subject @relation(fields: [subjectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }

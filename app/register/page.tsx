@@ -54,7 +54,10 @@ export default function RegisterPage() {
 
         {error && <div className="error-message">{error}</div>}
 
-        <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
+        <form className="auth-form" method="POST" onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(onSubmit)(e);
+        }}>
           <div>
             <Input {...register("name")} type="text" placeholder="Full Name" />
             {errors.name && <p className="error-message" style={{ marginTop: "5px", border: "none", background: "none", color: "var(--color-error)" }}>{errors.name.message}</p>}

@@ -9,10 +9,16 @@ const JWT_SECRET = new TextEncoder().encode(
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  console.log(`[PROXY] Request: ${pathname}`);
   const session = request.cookies.get("session")?.value;
 
+  // Public API routes
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   // Protected routes
-  const protectedPaths = ["/dashboard", "/subjects", "/data-entry", "/predictions", "/recommendations"];
+  const protectedPaths = ["/dashboard", "/subjects", "/data-entry", "/predictions", "/recommendations", "/api/performance", "/api/predictions", "/api/recommendations", "/api/subjects"];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected) {
@@ -22,8 +28,13 @@ export default async function proxy(request: NextRequest) {
 
     try {
       await jwtVerify(session, JWT_SECRET);
+      console.log(`[PROXY] Authorized: ${pathname}`);
       return NextResponse.next();
     } catch (error) {
+      console.log(`[PROXY] Unauthorized, redirecting: ${pathname}`);
+      if (pathname.startsWith("/api")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       return NextResponse.redirect(new URL("/login", request.url));
     }
   }
@@ -51,5 +62,6 @@ export const config = {
     "/recommendations/:path*",
     "/login",
     "/register",
+    "/api/:path*",
   ],
 };

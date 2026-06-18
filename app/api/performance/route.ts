@@ -22,10 +22,15 @@ async function getUserId() {
 }
 
 export async function GET() {
+  console.log("[API] GET /api/performance");
   try {
     const userId = await getUserId();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId) {
+      console.log("[API] GET /api/performance - Unauthorized");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    console.log(`[API] GET /api/performance - Fetching for user: ${userId}`);
     const performances = await prisma.performance.findMany({
       where: { studentId: userId },
       include: { subject: true },

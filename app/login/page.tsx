@@ -58,7 +58,10 @@ function LoginForm() {
       {success && <div className="success-message">{success}</div>}
       {error && <div className="error-message">{error}</div>}
 
-      <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
+      <form className="auth-form" method="POST" onSubmit={(e) => {
+        e.preventDefault();
+        handleSubmit(onSubmit)(e);
+      }}>
         <div>
           <Input {...register("email")} type="email" placeholder="Email Address" />
           {errors.email && <p className="error-message" style={{ marginTop: "5px", border: "none", background: "none", color: "var(--color-error)" }}>{errors.email.message}</p>}
