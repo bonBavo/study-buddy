@@ -3,64 +3,64 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
 }
 
 model Student {
-  id            String          @id @default(cuid())
-  name          String
-  email         String          @unique
-  password      String
-  createdAt     DateTime        @default(now())
-  performances  Performance[]
-  predictions   AIPrediction[]
+  id              String                @id @default(cuid())
+  name            String
+  email           String                @unique
+  password        String
+  createdAt       DateTime              @default(now())
+  performances    Performance[]
+  predictions     AIPrediction[]
   recommendations StudyRecommendation[]
 }
 
 model Subject {
-  id            String          @id @default(cuid())
-  name          String
-  creditHours   Int
-  difficulty    Int             @default(1) // 1=easy, 2=medium, 3=hard
-  performances  Performance[]
-  predictions   AIPrediction[]
+  id              String                @id @default(cuid())
+  name            String
+  creditHours     Int
+  difficulty      Int                   @default(1) // 1=easy, 2=medium, 3=hard
+  performances    Performance[]
+  predictions     AIPrediction[]
   recommendations StudyRecommendation[]
 }
 
 model Performance {
-  id          String   @id @default(cuid())
-  studentId   String
-  subjectId   String
-  score       Int
-  studyHours  Float
-  grade       String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  studentId  String
+  subjectId  String
+  score      Int
+  studyHours Float
+  grade      String?
+  createdAt  DateTime @default(now())
 
-  student     Student  @relation(fields: [studentId], references: [id])
-  subject     Subject  @relation(fields: [subjectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
 }
 
 model AIPrediction {
-  id              String   @id @default(cuid())
-  studentId       String
-  subjectId       String
-  predictedGrade  String
-  classification  String   // Weak | Average | Strong
-  finalScore      Float
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  studentId      String
+  subjectId      String
+  predictedGrade String
+  classification String // Weak | Average | Strong
+  finalScore     Float
+  createdAt      DateTime @default(now())
 
-  student         Student  @relation(fields: [studentId], references: [id])
-  subject         Subject  @relation(fields: [subjectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
 }
 
 model StudyRecommendation {
-  id              String   @id @default(cuid())
-  studentId       String
-  subjectId       String
+  id               String   @id @default(cuid())
+  studentId        String
+  subjectId        String
   recommendedHours Float
-  classification  String
-  createdAt       DateTime @default(now())
+  classification   String
+  createdAt        DateTime @default(now())
 
-  student         Student  @relation(fields: [studentId], references: [id])
-  subject         Subject  @relation(fields: [subjectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
 }
