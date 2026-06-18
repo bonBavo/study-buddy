@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { performanceSchema } from "@/types";
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
@@ -22,15 +21,11 @@ async function getUserId() {
 }
 
 export async function GET() {
-  console.log("[API] GET /api/performance");
   try {
+    const { prisma } = await import("@/lib/prisma");
     const userId = await getUserId();
-    if (!userId) {
-      console.log("[API] GET /api/performance - Unauthorized");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    console.log(`[API] GET /api/performance - Fetching for user: ${userId}`);
     const performances = await prisma.performance.findMany({
       where: { studentId: userId },
       include: { subject: true },
@@ -44,6 +39,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const userId = await getUserId();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

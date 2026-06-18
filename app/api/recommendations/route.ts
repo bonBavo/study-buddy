@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { CLASSIFICATIONS } from "@/types";
 
 export async function GET() {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const subjects = await prisma.subject.findMany({
       include: {
         performances: {
@@ -13,7 +13,7 @@ export async function GET() {
       }
     });
 
-    const recommendations = subjects.map(subject => {
+    const recommendations = subjects.map((subject: typeof subjects[0]) => {
       const perfs = subject.performances;
       const avgScore = perfs.length > 0 
         ? perfs.reduce((acc, curr) => acc + curr.score, 0) / perfs.length 

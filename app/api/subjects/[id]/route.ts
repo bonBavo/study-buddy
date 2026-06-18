@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { subjectSchema } from "@/types";
 
 export async function PUT(
@@ -7,6 +6,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const { id } = await params;
     const body = await request.json();
     const result = subjectSchema.safeParse(body);
@@ -21,6 +21,7 @@ export async function PUT(
     });
 
     return NextResponse.json(subject);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return NextResponse.json({ error: "Failed to update subject" }, { status: 500 });
   }
@@ -31,6 +32,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { prisma } = await import("@/lib/prisma");
     const { id } = await params;
     await prisma.subject.delete({
       where: { id },
